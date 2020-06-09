@@ -1,6 +1,6 @@
 # Coursera data science projects
 
-These are projects completed for my coursera data-science projects.
+These are projects related to coursera data-science courses.
 
-[This is a practice site for leaflet+Rmd](URL)
-This is a practice site for leaflet+R
+## projects
+- [practice site for leaflet+Rmd](https://sntag.github.io/coursera-data-science-projects/leaflet-in-rmarkdown/leaflet-in-rmarkdown-exported.html)
