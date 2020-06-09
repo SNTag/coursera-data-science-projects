@@ -1,0 +1,40 @@
+---
+title: "Leaflet in a Web Document"
+author: "SNTag"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    number_sections: true
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    fig_width: 7
+    fig_height: 4.5
+---
+
+Caravaggio is an amazing artist. While his art alone speaks to his skill, it doesn't tell of the colorful life he lived.
+
+He was different from the standard artist like Leonardo da Vinci, Botticelli, or Michelangelo. He
+liked to drink and fight, and was a infamous figure. He refused to not cooperate with anyone, but
+people kept buying his art for it's sheer skill. Eventually his home city of Florence grew tired and
+threw him out.
+
+Hidden in Rome is a relatively unassuming Church. Inside are some of his amazing works.
+
+```{R, echo=FALSE}
+library(leaflet)
+my_map <- leaflet() %>%
+    addTiles(group = "OSM",
+             options = providerTileOptions(minZoom = 16, maxZoom = 17)) %>%
+#    setView(41.899623, 12.474565, zoom = 15)
+    addMarkers(lat=41.899623, lng=12.474565,
+               popup="The Inspiration of Saint Matthew. https://en.wikipedia.org/wiki/San_Luigi_dei_Francesi") %>%
+    addProviderTiles("Stamen.TonerLite",
+                                group = "Toner",
+                                options = providerTileOptions(minZoom = 16, maxZoom = 17))
+my_map %>% addProviderTiles(providers$Stamen.Watercolor)
+```
+
+The image below is taken from the wikipedia page for [The Inspiration of Saint Matthew](https://en.wikipedia.org/wiki/The_Inspiration_of_Saint_Matthew), and is one of three hanging in the Church.
+
+[![The Inspiration of Saint Matthew](./300px-The_Inspiration_of_Saint_Matthew_by_Caravaggio.jpg)](https://en.wikipedia.org/wiki/The_Inspiration_of_Saint_Matthew)
