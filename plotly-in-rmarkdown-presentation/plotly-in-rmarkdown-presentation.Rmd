@@ -75,7 +75,7 @@ df1 %>%
 
 # Disclaimer
 
-Isn't it amazing that life-expectancy is related to child mortality?
+Isn't it great that as life expectancy increased inversely with a decrease in child mortality?
 
 Obviously, this information does not mean life-expectancy is directly correlated to child
 mortality. Most likely breakthroughs in medicine led to improvements in both
