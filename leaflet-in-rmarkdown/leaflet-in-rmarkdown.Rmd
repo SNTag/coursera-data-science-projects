@@ -1,5 +1,6 @@
 ---
 title: "Leaflet in a Web Document"
+subtitle: "A very quick introduction to Caravaggio"
 author: "SNTag"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -21,7 +22,14 @@ threw him out.
 
 Hidden in Rome is a relatively unassuming Church. Inside are some of his amazing works.
 
-```{R, echo=FALSE}
+<br>
+
+<style>
+.html-widget {
+    margin: auto;
+}
+</style>
+```{R, echo=FALSE, fig.align="center", fig.cap="**Fig.1** Leaflet map showing the location of a unassuming Church. To be fair, there are many unassuming Churches and buildings in Italy holding artistic wonders."}
 library(leaflet)
 my_map <- leaflet() %>%
     addTiles(group = "OSM",
@@ -34,7 +42,27 @@ my_map <- leaflet() %>%
                                 options = providerTileOptions(minZoom = 16, maxZoom = 17))
 my_map %>% addProviderTiles(providers$Stamen.Watercolor)
 ```
+<br>
 
 The image below is taken from the wikipedia page for [The Inspiration of Saint Matthew](https://en.wikipedia.org/wiki/The_Inspiration_of_Saint_Matthew), and is one of three hanging in the Church.
 
-[![The Inspiration of Saint Matthew](./300px-The_Inspiration_of_Saint_Matthew_by_Caravaggio.jpg)](https://en.wikipedia.org/wiki/The_Inspiration_of_Saint_Matthew)
+<br>
+
+<center>
+[![**Fig.2** The Inspiration of Saint Matthew](./300px-The_Inspiration_of_Saint_Matthew_by_Caravaggio.jpg)](https://en.wikipedia.org/wiki/The_Inspiration_of_Saint_Matthew)
+</center>
+<center>
+**Fig.2** The Inspiration of Saint Matthew
+</center>
+
+<br>
+
+What He is known best for is the striking palette in his art. There is a distinct difference in his
+use of light and dark (chiascuro) which is matched by only a few artists in history. Goya, who also
+has mastery of chiascuro, makes use of an overall darker palette. I would argue that Caravagio gives
+colour emphasis through his use of dark, while Goya uses black as a primary colour.
+
+<br>
+<br>
+<br>
+<br>
