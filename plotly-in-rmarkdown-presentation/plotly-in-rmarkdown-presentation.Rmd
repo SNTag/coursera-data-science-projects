@@ -1,0 +1,85 @@
+---
+title: "Plotly in R Markdown Presentation"
+author: "SNTagore"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  ioslides_presentation
+#widescreen: true
+subtitle: "A fashionable way of presenting information"
+#theme: "Bergen"
+#always_allow_html: true
+---
+
+```{R loading_packages, echo = F, eval = T}
+library(plotly)
+library(tidyverse)
+library(plotly)
+```
+
+
+# Gapminder
+
+Gapminder is an interesting organization. I fist was introduced to them through a [Ted
+Talk](https://www.youtube.com/watch?v=hVimVzgtD6w).
+
+Using their data, I will attempt to recreate their plotting style on Life Expectancy vs. Child Mortality.
+
+#
+
+```{R data_processing_gapminder, echo = F, eval = T, warning = F, message = F}
+life_expectancy <- read_csv("./data/life_expectancy_years.csv")
+life_expectancy <-
+    life_expectancy %>%
+    pivot_longer(
+        cols = -country,
+        names_to = "year",
+        values_to = "life_expectancy"
+    )
+child_mortality <- read_csv("./data/child_mortality_0_5_year_olds_dying_per_1000_born.csv")
+child_mortality <-
+    child_mortality %>%
+    pivot_longer(
+        cols = -country,
+        names_to = "year",
+        values_to = "child_mortality_per_1000_born"
+    )
+
+library(gapminder)
+tmpDat <- gapminder[gapminder$year>="1950",c(-6,-4)]
+life_expectancy <- merge(life_expectancy, tmpDat)
+child_mortality <- merge(child_mortality, tmpDat)
+df1 <- merge(child_mortality,life_expectancy) %>% as_tibble
+```
+
+
+
+```{R plotting_plotly_gapminder_data, echo = F, eval = T, warning = F, message = F}
+df1 %>%
+    plot_ly(
+        x = ~child_mortality_per_1000_born,
+        y = ~life_expectancy,
+        frame = ~year,
+        size = ~pop,
+        color = ~continent,
+        text = ~country,
+        hoverinfo = "text",
+        type = 'scatter',
+        mode = 'markers'
+    ) %>%
+    layout(
+        title = "Child Mortality vs. Life Expectancy",
+        xaxis = list(title = "Child Mortality per 1,000 Born"),
+        yaxis = list(title = "Life Expectancy in Years")
+    )
+```
+
+# Disclaimer
+
+Isn't it amazing that life-expectancy is related to child mortality?
+
+Obviously, this information does not mean life-expectancy is directly correlated to child
+mortality. Most likely breakthroughs in medicine led to improvements in both
+
+# References
+
+All data here was taken from the gapminder website (https://www.gapminder.org/)
