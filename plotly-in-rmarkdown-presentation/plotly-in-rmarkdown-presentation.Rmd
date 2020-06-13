@@ -19,10 +19,12 @@ library(plotly)
 
 # Gapminder
 
-Gapminder is an interesting organization. I fist was introduced to them through a [Ted
+Gapminder is an interesting organization. I first was introduced to them through a [Ted
 Talk](https://www.youtube.com/watch?v=hVimVzgtD6w).
 
 Using their data, I will attempt to recreate their plotting style on Life Expectancy vs. Child Mortality.
+
+Child mortality has been a relatively reliable way to study development over time.
 
 #
 
