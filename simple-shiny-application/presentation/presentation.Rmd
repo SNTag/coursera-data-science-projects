@@ -1,0 +1,58 @@
+---
+title: "United Federation of Planets"
+subtitle: "Potential planet candidates for settling"
+author: "SNTag"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  beamer_presentation:
+    theme: "Berkeley"
+    colortheme: "dolphin"
+    fonttheme: "structurebold"
+---
+
+# Intro
+
+The Kepler satellite has collected a myriad of information on planets.
+
+The satellite was retired in 2018. It has been an important source of information on habitable
+planets in our galaxy.
+
+When Humanity is ready to settle among the stars, the Kepler dataset can point out high-priority
+targets with habitable solar systems.
+
+Very few planets meet the requirements for sustainable life (for example, exist in the Goldilocks
+zone)
+
+
+# Understanding the Application
+
+This application will only identify preliminary planets.
+
+Further investigation of planets will be needed in step 2 (iron composition, star composition,
+etc.). While this data is available, it is not investigated here.
+
+The data can be combed for planets by their radius, distance from earth, and a 'score' that measures
+a variety of figures.
+
+This application aims to rapidly identify planets for further investigation.
+
+# How-to
+
+The data can be combed for planets by their radius, distance from earth, and a 'score' that measures
+a variety of figures.
+
+Radius is measured using \( R_{E} \) This measure is relative to Earth's radius. planets with a
+radius 1.5 \( R_{E} \) are suspected to have an inhospitable atmosphere.
+
+While we want hospitable planets, we need to find ones within a capable flight plan (measured in
+Parsecs).
+
+The score is comprimised from a variety of factors. However, due to discrepincies in error, data
+processing, etc, it may be lacking. 1 is preferred, 0 is not.
+
+# Shiny application
+
+This application is run from 1 file.
+
+files are found here:
+[shiny application](https://github.com/SNTag/coursera-data-science-projects/simple-shiny-application/simple-shiny-application.R)

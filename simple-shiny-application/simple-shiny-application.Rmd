@@ -1,0 +1,135 @@
+---
+title: "simple Shiny application"
+author: "SNTag"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    number_sections: true
+    toc: true
+    toc_depth: 3
+    fig_caption: true
+    fig_width: 7
+    fig_height: 4.5
+---
+
+# SELF RUNNING
+
+```{R self_running, eval=FALSE, include = FALSE}
+knitr::purl("./simple-shiny-application.Rmd")
+source("./simple-shiny-application.R")
+```
+```{R testing_param, echo = F, eval = T, include=FALSE}
+input <- new.env()
+input$koi_score <- c(0.1,0.3340)
+input$koi_time0bk <- c(1,166.2)
+input$koi_prad <- c(0.5,2.39)
+```
+Values of interest
+
+
+koi_timeObk : distance to earth in parsecs
+koi_prad    : Planets with a radius of more than 1.5 times that of Earth tend to accumulate the thick atmospheres which make them less likely to be habitable.
+koi_score   : preference/likelihood
+
+koi_prad
+koi_dor
+
+
+
+# R UI
+
+```{R ui, echo = F, eval = T}
+#
+# This is the user-interface definition of a Shiny web application. You can
+# run the application by clicking 'Run App' above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+
+library(shiny)
+
+                                        # Define UI for dataset viewer application
+ui <- fluidPage(
+
+                                        # Sidebar with options selectors
+    sidebarLayout(
+        sidebarPanel(
+            helpText("This application will subset the keppler dataset to data of interest."),
+            h3(helpText("Select:")),
+            sliderInput("koi_score", label = h4("score"), min = 0.000, max = 1.000, value = c(0.1,0.3340)),
+            sliderInput("koi_time0bk", label = h4("Distance to Planet (parsecs)"), min=120.5, max = 1472.5, value = c(50,137.2)),
+            sliderInput("koi_prad", label = h4("Planet radius (R_E)"), min = 1.08, max = 5.200346, value = c(1,2.39)),
+
+            # Button
+            downloadButton("downloadData", "Download")
+        ),
+
+                                        # Show a plot with mpg and regression line
+        mainPanel(
+            plotOutput("distPlot"),
+            h4("Summary of planet meeting these conditions:"),
+            h3(textOutput("result"))
+        )
+    )
+)
+
+```
+
+# SERVER
+
+```{R server, echo = F, eval = T}
+#
+# This is the server logic of a Shiny web application. You can run the
+# application by clicking 'Run App' above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+
+library(shiny)
+library(datasets)
+library(tidyverse)
+
+kepler <- read_csv("./data/cumulative.csv")
+
+# Define server logic required to summarize and view the selected dataset
+server <- function(input, output) {
+    output$distPlot <- renderPlot({
+        # select diamonds depending of user input
+        ## data_kepler <- filter(data_kepler, grepl(input$koi_score, koi_score), grepl(input$koi_time0bk, koi_time0bk), grepl(input$koi_prad, koi_prad))
+        data_kepler <- filter(kepler,
+                              kepler$koi_time0bk >= input$koi_time0bk[1] & kepler$koi_time0bk <= input$koi_time0bk[2],
+                              kepler$koi_score >= input$koi_score[1] & kepler$koi_score <= input$koi_score[2],
+                              kepler$koi_prad >= input$koi_prad[1] & kepler$koi_prad <= input$koi_prad[2]
+                              )
+#        data_kepler <- filter(kepler, kepler$koi_score %in% input$koi_score, kepler$koi_time0bk %in% input$koi_time0bk, kepler$koi_prad %in% input$koi_prad)
+        # Drow the plot using ggplot2
+        plot <- ggplot(data=data_kepler, aes(x=koi_time0bk, y = koi_prad))+
+            geom_point(aes(color = koi_score), alpha = 0.3) +
+            xlab("Distance to Earth (Parsecs)") +
+            ylab("Radius (relative to Earth)") +
+            ggtitle("Viable planets")
+        plot
+    })
+
+    output$result <- renderText({
+        paste("There are",dim(data_kepler)[1],"planets meeting this criteria.")
+    })
+
+    output$downloadData <- downloadHandler(
+    filename = function() {
+      paste(input$dataset, ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(data_kepler, file, row.names = FALSE)
+    }
+  )
+
+}
+
+
+shinyApp(ui = ui, server = server)
+```
