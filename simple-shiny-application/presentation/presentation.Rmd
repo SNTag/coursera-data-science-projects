@@ -55,4 +55,6 @@ processing, etc, it may be lacking. 1 is preferred, 0 is not.
 This application is run from 1 file.
 
 files are found here:
-[shiny application](https://github.com/SNTag/coursera-data-science-projects/simple-shiny-application/simple-shiny-application.R)
+[Source file](https://github.com/SNTag/coursera-data-science-projects/simple-shiny-application/simple-shiny-application.R)
+
+[shiny application](https://sntag.shinyapps.io/simple-shiny-application/)
