@@ -1,6 +1,6 @@
 ## ----self_running, eval=FALSE, include = FALSE--------------------------------
-## knitr::purl("./prediction-assignment.Rmd")
-## source("./prediction-assignment.R")
+## knitr::purl("./prediction-assignment-completecase.Rmd")
+## source("./prediction-assignment-completecase.R")
 
 
 ## ----loading_data, echo = T, eval = T, warning = F, message = F---------------
@@ -41,7 +41,7 @@ df_train_cc80 <- df_train_cc[trainIndex,]
 df_train_cc20 <- df_train_cc[-trainIndex,]
 
 
-## ----classification, echo = T, eval = T---------------------------------------
+## ----classification_rf, echo = T, eval = T------------------------------------
 if (exists("rf_fit")) {
     rf_fit <- readRDS("fit.rds")
 } else {
@@ -60,7 +60,8 @@ cl <- makePSOCKcluster(5)
     saveRDS(rf_fit, file = "fit.rds")
 }
 
-if (exists("gbm_fit")) {
+## ----classification_gbm, echo = T, eval = T-----------------------------------
+if (!exists("gbm_fit")) {
     rf_fit <- readRDS("fit.rds")
 } else {
 cl <- makePSOCKcluster(5)
@@ -69,12 +70,11 @@ cl <- makePSOCKcluster(5)
 fitControl <- caret::trainControl(method = "cv",
                                       number = 10)
 
-gbm_fit <- train(Class ~ .,
+gbm_fit <- train(classe ~ .,
                  data = df_train_cc80,
                  method = "gbm",
+                 metric = "Kappa",
                  trControl = fitControl,
-                 ## This last option is actually one
-                 ## for gbm() that passes through
                  verbose = FALSE)
 
     stopCluster(cl)
@@ -87,9 +87,11 @@ rf_fit
 gbm_fit
 
 library(lattice)
-rValues <- resamples(list(rf=rfFit,gbm=gbmFit))
-summary(rValues)
+resample_result <- resamples(list(rf = rf_fit, gbm = gbm_fit))
+summary(resample_result)
 
+
+## ----rf_model_summary, echo = T, eval = T-------------------------------------
 results <- c()
 results$predicted <- predict(rf_fit,newdata = df_train_cc20)
 results$classe <- df_train_cc20$classe

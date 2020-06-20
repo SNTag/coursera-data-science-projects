@@ -1,7 +1,7 @@
 ---
 title: "Analysis on Exercise Data"
 author: "SNTag"
-date: "20 June, 2020"
+date: "21 June, 2020"
 output:
   html_document:
     number_sections: true
@@ -29,6 +29,7 @@ Goal: to identify the exercise regime identified in the classe variable.
 library(tidyverse)
 library(magrittr)
 library(caret)
+library(doParallel)
 
 df_train <- read_csv("./data/pml-training.csv")
 df_test  <- read_csv("./data/pml-testing.csv")
@@ -86,13 +87,13 @@ df_train_cc20 <- df_train_cc[-trainIndex,]
 
 # Classification
 
-We are interested in a model capable of predicting the classe. For this, random forest is a robost
-algorithim. This shall be used with the kappa metric.
+We are interested in a model capable of predicting the classe. For this, we will compare between
+random forest and gbm. Two robost algorithim. They will be used with the kappa metric. Finally,
+cross-validation will be completed between the two models. Both models will be repeated with k-fold
+10.
 
 
 ```r
-library(doParallel)
-
 if (exists("rf_fit")) {
     rf_fit <- readRDS("fit.rds")
 } else {
@@ -112,7 +113,29 @@ cl <- makePSOCKcluster(5)
 }
 ```
 
-looking at the resulting model, we get:
+```r
+if (!exists("gbm_fit")) {
+    rf_fit <- readRDS("fit.rds")
+} else {
+cl <- makePSOCKcluster(5)
+    registerDoParallel(cl)
+
+fitControl <- caret::trainControl(method = "cv",
+                                      number = 10)
+
+gbm_fit <- train(classe ~ .,
+                 data = df_train_cc80,
+                 method = "gbm",
+                 metric = "Kappa",
+                 trControl = fitControl,
+                 verbose = FALSE)
+
+    stopCluster(cl)
+    saveRDS(rf_fit, file = "gbm.rds")
+}
+```
+
+looking at the resulting models, we get:
 
 
 ```r
@@ -139,6 +162,36 @@ rf_fit
 ## Kappa was used to select the optimal model using the largest value.
 ## The final value used for the model was mtry = 41.
 ```
+
+```r
+gbm_fit
+```
+
+```
+## Error in eval(expr, envir, enclos): object 'gbm_fit' not found
+```
+
+```r
+library(lattice)
+resample_result <- resamples(list(rf = rf_fit, gbm = gbm_fit))
+```
+
+```
+## Error in resamples(list(rf = rf_fit, gbm = gbm_fit)): object 'gbm_fit' not found
+```
+
+```r
+summary(resample_result)
+```
+
+```
+## Error in summary(resample_result): object 'resample_result' not found
+```
+
+Interestingly, both models have a relatively high accuracy. This assignment will continue using the
+random forest model. This approach will proceed. It also seems to have high sensitivity and
+specificity when applied to the split data. Finally, error can be found using 'confusionMatrix'.
+
 
 ```r
 results <- c()
@@ -200,8 +253,7 @@ confusionMatrix(df_train_cc20$classe, predict(rf_fit, newdata = df_train_cc20))
 ```
 
 
-The random forest model has a relatively high accuracy. This approach will proceed. It also seems to
-have high sensitivity and specificity when applied to the split data.
+# Results
 
 
 ```r

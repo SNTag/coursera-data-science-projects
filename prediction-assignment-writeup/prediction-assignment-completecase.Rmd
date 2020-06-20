@@ -143,8 +143,7 @@ summary(resample_result)
 
 Interestingly, both models have a relatively high accuracy. This assignment will continue using the
 random forest model. This approach will proceed. It also seems to have high sensitivity and
-specificity when applied to the split data.
-
+specificity when applied to the split data. Finally, error can be found using 'confusionMatrix'.
 
 ```{R rf_model_summary, echo = T, eval = T}
 results <- c()
@@ -156,6 +155,7 @@ length(which(results$predicted != results$classe))
 
 confusionMatrix(df_train_cc20$classe, predict(rf_fit, newdata = df_train_cc20))
 ```
+
 
 # Results
 
