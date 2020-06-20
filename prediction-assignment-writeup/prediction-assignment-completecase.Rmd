@@ -1,0 +1,137 @@
+---
+title: "Analysis on Exercise Data"
+author: "SNTag"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    number_sections: true
+    toc: false
+    toc_depth: 3
+    fig_caption: true
+    fig_width: 7
+    fig_height: 4
+    includes:
+      in_header: my_header.tex
+---
+
+```{R self_running, eval=FALSE, include = FALSE}
+knitr::purl("./prediction-assignment.Rmd")
+source("./prediction-assignment.R")
+```
+
+# Introduction
+
+This project will attempt to identify exercise regimes followed from biological data. This will
+give us a guide to what is necessary for proper development.
+
+Goal: to identify the exercise regime identified in the classe variable.
+
+
+```{R loading_data, echo = T, eval = T, warning = F, message = F}
+library(tidyverse)
+library(magrittr)
+library(caret)
+
+df_train <- read_csv("./data/pml-training.csv")
+df_test  <- read_csv("./data/pml-testing.csv")
+
+df_train$classe <- df_train$classe %>% as.factor
+
+set.seed("1701")
+```
+
+# Exploratory data analysis
+
+The training data for this project has `r dim(df_train)[1]` entries, belonging
+to `r df_train$user_name %>% unique %>% length`. We are interested in using this data to predict
+how `r dim(df_test)[1]` entries should look.
+
+In a quick test to check distribution of NAs, 2/3rds of the columns are nearly entirely NA, with
+only some data. None are entirely NAs though.
+
+```{R checking_for_NAs, echo = T, eval = T, fig.align = "center", fig.cap = "Percentage of rows per column that are NA."}
+missing_values <- df_train %>% summarize_all(funs(sum(is.na(.))/dim(df_train)[1]))
+
+missing_values <- gather(missing_values, key="feature", value="missing_pct")
+missing_values %>%
+    ggplot(aes(x=reorder(feature,-missing_pct),y=missing_pct)) +
+    geom_bar(stat="identity",fill="red")+
+    coord_flip()+theme_bw()
+```
+
+Further examination of the data shows that the same rows have NAs (Fig. 1). If one row has NAs, others will
+too. I am unsure how to make the best use of this information so I will remove these NAs.
+
+```{R removing_NAs, echo = T, eval = T}
+missing_values_logic <- sapply(df_test, function(x) any(is.na(x)))
+df_train_cc          <- df_train[,!missing_values_logic]
+df_train_cc$classe   <- df_train$classe %>% as.factor
+```
+
+And finally, to test my models capabilities, I will split the training data set 80-20. The model
+will be trained on the 80%, and tested on the 20%, before being applied to data in question
+(df_test).
+
+```{R data_split, echo = T, eval = T}
+trainIndex <- caret::createDataPartition(df_train_cc$classe, p = .8,
+                                  list = FALSE,
+                                  times = 1)
+df_train_cc80 <- df_train_cc[trainIndex,]
+df_train_cc20 <- df_train_cc[-trainIndex,]
+```
+
+
+# Classification
+
+We are interested in a model capable of predicting the classe. For this, random forest is a robost
+algorithim. This shall be used with the kappa metric.
+
+```{R classification, echo = T, eval = T}
+library(doParallel)
+
+if (exists("rf_fit")) {
+    rf_fit <- readRDS("fit.rds")
+} else {
+cl <- makePSOCKcluster(5)
+    registerDoParallel(cl)
+
+    fitControl <- caret::trainControl(method = "cv",
+                                      number = 10)
+    rf_fit <- caret::train(classe~.,
+                           data=df_train_cc80,
+                           method="rf",
+                           metric="Kappa",
+                           trControl=fitControl)
+
+    stopCluster(cl)
+    saveRDS(rf_fit, file = "fit.rds")
+}
+```
+
+looking at the resulting model, we get:
+
+```{R model_summary, echo = T, eval = T}
+rf_fit
+
+results <- c()
+results$predicted <- predict(rf_fit,newdata = df_train_cc20)
+results$classe <- df_train_cc20$classe
+results <- as.data.frame(results)
+print("number of incorrectly predicted rows:")
+length(which(results$predicted != results$classe))
+
+confusionMatrix(df_train_cc20$classe, predict(rf_fit, newdata = df_train_cc20))
+```
+
+The random forest model has a relatively high accuracy. This approach will proceed. It also seems to
+have high sensitivity and specificity when applied to the split data.
+
+# Results
+
+```{R final_model, echo = T, eval = T}
+finalResults <- predict(rf_fit, newdata = df_test)
+print(finalResults)
+```
+
+The results suggest it is all A. As the significance from the earlier steps is high, it will
+be accepted.
