@@ -4,3 +4,5 @@ While this repo has the raw html file as it is for you to view, there is also a 
 project. It would probably look nicer.
 
 [html gh-page](https://sntag.github.io/coursera-data-science-projects/prediction-assignment-writeup/prediction-assignment-completecase.html)
+
+[raw html](https://github.com/SNTag/coursera-data-science-projects/blob/gh-pages/prediction-assignment-writeup/prediction-assignment-completecase.html)
