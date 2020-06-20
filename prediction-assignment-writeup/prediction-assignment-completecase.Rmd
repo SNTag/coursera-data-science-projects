@@ -15,8 +15,8 @@ output:
 ---
 
 ```{R self_running, eval=FALSE, include = FALSE}
-knitr::purl("./prediction-assignment.Rmd")
-source("./prediction-assignment.R")
+knitr::purl("./prediction-assignment-completecase.Rmd")
+source("./prediction-assignment-completecase.R")
 ```
 
 # Introduction
@@ -31,6 +31,7 @@ Goal: to identify the exercise regime identified in the classe variable.
 library(tidyverse)
 library(magrittr)
 library(caret)
+library(doParallel)
 
 df_train <- read_csv("./data/pml-training.csv")
 df_test  <- read_csv("./data/pml-testing.csv")
@@ -83,12 +84,12 @@ df_train_cc20 <- df_train_cc[-trainIndex,]
 
 # Classification
 
-We are interested in a model capable of predicting the classe. For this, random forest is a robost
-algorithim. This shall be used with the kappa metric.
+We are interested in a model capable of predicting the classe. For this, we will compare between
+random forest and gbm. Two robost algorithim. They will be used with the kappa metric. Finally,
+cross-validation will be completed between the two models. Both models will be repeated with k-fold
+10.
 
-```{R classification, echo = T, eval = T}
-library(doParallel)
-
+```{R classification_rf, echo = T, eval = T}
 if (exists("rf_fit")) {
     rf_fit <- readRDS("fit.rds")
 } else {
@@ -107,12 +108,45 @@ cl <- makePSOCKcluster(5)
     saveRDS(rf_fit, file = "fit.rds")
 }
 ```
+```{R classification_gbm, echo = T, eval = T}
+if (!exists("gbm_fit")) {
+    rf_fit <- readRDS("fit.rds")
+} else {
+cl <- makePSOCKcluster(5)
+    registerDoParallel(cl)
 
-looking at the resulting model, we get:
+fitControl <- caret::trainControl(method = "cv",
+                                      number = 10)
+
+gbm_fit <- train(classe ~ .,
+                 data = df_train_cc80,
+                 method = "gbm",
+                 metric = "Kappa",
+                 trControl = fitControl,
+                 verbose = FALSE)
+
+    stopCluster(cl)
+    saveRDS(rf_fit, file = "gbm.rds")
+}
+```
+
+looking at the resulting models, we get:
 
 ```{R model_summary, echo = T, eval = T}
 rf_fit
+gbm_fit
 
+library(lattice)
+resample_result <- resamples(list(rf = rf_fit, gbm = gbm_fit))
+summary(resample_result)
+```
+
+Interestingly, both models have a relatively high accuracy. This assignment will continue using the
+random forest model. This approach will proceed. It also seems to have high sensitivity and
+specificity when applied to the split data.
+
+
+```{R rf_model_summary, echo = T, eval = T}
 results <- c()
 results$predicted <- predict(rf_fit,newdata = df_train_cc20)
 results$classe <- df_train_cc20$classe
@@ -122,9 +156,6 @@ length(which(results$predicted != results$classe))
 
 confusionMatrix(df_train_cc20$classe, predict(rf_fit, newdata = df_train_cc20))
 ```
-
-The random forest model has a relatively high accuracy. This approach will proceed. It also seems to
-have high sensitivity and specificity when applied to the split data.
 
 # Results
 
