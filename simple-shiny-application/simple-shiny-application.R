@@ -2,8 +2,13 @@
 ## knitr::purl("./simple-shiny-application.Rmd")
 ## source("./simple-shiny-application.R")
 
+## ----testing_param, echo = F, eval = T, include=FALSE-------------------------
+input <- new.env()
+input$koi_score <- c(0.1,0.3340)
+input$koi_time0bk <- c(1,166.2)
+input$koi_prad <- c(0.5,2.39)
 
-## ----ui, echo = F, eval = T---------------------------------------------------
+## ----ui, echo = F, eval = T, warning = F, message = F-------------------------
 #
 # This is the user-interface definition of a Shiny web application. You can
 # run the application by clicking 'Run App' above.
@@ -21,27 +26,27 @@ ui <- fluidPage(
                                         # Sidebar with options selectors
     sidebarLayout(
         sidebarPanel(
-            helpText("This application predicts the price of a diamond based on its characteristics."),
+            helpText("This application will subset the keppler dataset to data of interest."),
             h3(helpText("Select:")),
-            numericInput("mpg", label = h4("MPG"), step = 0.01, value = 2),
-            sliderInput("wt", label = h4("Weight"), min = 1.513, max = 5.424, value = 3.217),
-            selectInput("cyl", label = h4("Number of Cylinders"),
-                   choices = list("4" = 4, "6" = 6, "8" = 8)),
-            sliderInput("disp", label = h4("Displacement (cu.in)"), min = 71.1, max = 472, value = 230.7)
+            sliderInput("koi_score", label = h4("score"), min = 0.000, max = 1.000, value = c(0.1,0.3340)),
+            sliderInput("koi_time0bk", label = h4("Distance to Planet (parsecs)"), min=120.5, max = 1472.5, value = c(50,137.2)),
+            sliderInput("koi_prad", label = h4("Planet radius (R_E)"), min = 1.08, max = 5.200346, value = c(1,2.39)),
+
+            # Button
+            downloadButton("downloadData", "Download")
         ),
 
                                         # Show a plot with mpg and regression line
         mainPanel(
             plotOutput("distPlot"),
-            h4("Predicted value of mpg is:"),
+            h4("Summary of planet meeting these conditions:"),
             h3(textOutput("result"))
         )
     )
 )
 
 
-
-## ----server, echo = F, eval = T-----------------------------------------------
+## ----server, echo = F, eval = T, warning = F, message = F---------------------
 #
 # This is the server logic of a Shiny web application. You can run the
 # application by clicking 'Run App' above.
@@ -53,41 +58,42 @@ ui <- fluidPage(
 
 library(shiny)
 library(datasets)
-data(mtcars)
+library(tidyverse)
 
-data_cars <- mtcars[,c(1:3,6)]
+kepler <- read_csv("./data/cumulative.csv")
 
 # Define server logic required to summarize and view the selected dataset
 server <- function(input, output) {
     output$distPlot <- renderPlot({
         # select diamonds depending of user input
-        data_cars <- filter(mtcars, grepl(input$wt, weight), grepl(input$cyl, cycle), grepl(input$disp, display))
-        # build linear regression model
-        fit <- lm( hp ~ mpg, data_cars)
-        # predicts the price
-        pred <- predict(fit, newdata = data.frame(mpg = input$mpg,
-                                                  wt = input$wt,
-                                                  cyl = input$cyl,
-                                                  disp = input$disp))
+        ## data_kepler <- filter(data_kepler, grepl(input$koi_score, koi_score), grepl(input$koi_time0bk, koi_time0bk), grepl(input$koi_prad, koi_prad))
+        data_kepler <- filter(kepler,
+                              kepler$koi_time0bk >= input$koi_time0bk[1] & kepler$koi_time0bk <= input$koi_time0bk[2],
+                              kepler$koi_score >= input$koi_score[1] & kepler$koi_score <= input$koi_score[2],
+                              kepler$koi_prad >= input$koi_prad[1] & kepler$koi_prad <= input$koi_prad[2]
+                              )
+#        data_kepler <- filter(kepler, kepler$koi_score %in% input$koi_score, kepler$koi_time0bk %in% input$koi_time0bk, kepler$koi_prad %in% input$koi_prad)
         # Drow the plot using ggplot2
-        plot <- ggplot(data=data_cars, aes(x=mpg, y = hp))+
-            geom_point(aes(color = wt), alpha = 0.3)+
-            geom_smooth(method = "lm")+
-            geom_vline(xintercept = input$mpg, color = "red")+
-            geom_hline(yintercept = pred, color = "green")
-       plot
+        plot <- ggplot(data=data_kepler, aes(x=koi_time0bk, y = koi_prad))+
+            geom_point(aes(color = koi_score), alpha = 0.3) +
+            xlab("Distance to Earth (Parsecs)") +
+            ylab("Radius (relative to Earth)") +
+            ggtitle("Viable planets")
+        plot
     })
+
     output$result <- renderText({
-        # renders the text for the prediction below the graph
-        data_cars <- filter(mtcars, grepl(input$wt, wt), grepl(input$cyl, cycle), grepl(input$disp, display))
-        fit <- lm( hp~mpg, data_cars)
-        pred <- predict(fit, newdata = data.frame(mpg = input$mpg,
-                                                  wt = input$wt,
-                                                  cyl = input$cyl,
-                                                  disp = input$disp))
-        res <- paste(round(pred, digits = 2), "$")
-        res
+        paste("There are",dim(data_kepler)[1],"planets meeting this criteria.")
     })
+
+    output$downloadData <- downloadHandler(
+    filename = function() {
+      paste(input$dataset, ".csv", sep = "")
+    },
+    content = function(file) {
+      write.csv(data_kepler, file, row.names = FALSE)
+    }
+  )
 
 }
 

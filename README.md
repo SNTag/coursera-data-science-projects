@@ -6,3 +6,4 @@ These are projects related to coursera data-science courses.
 - [practice site for leaflet+Rmd](https://sntag.github.io/coursera-data-science-projects/leaflet-in-rmarkdown/leaflet-in-rmarkdown-exported.html)
 - [plotly in rmarkdown presentation](https://sntag.github.io/coursera-data-science-projects/plotly-in-rmarkdown-presentation/plotly-in-rmarkdown-presentation.html#1)
 - [shiny application](https://sntag.shinyapps.io/simple-shiny-application/)
+- [Machine-learning: What exercises](https://sntag.github.io/coursera-data-science-projects/prediction-assignment-writeup/prediction-assignment-completecase.html)

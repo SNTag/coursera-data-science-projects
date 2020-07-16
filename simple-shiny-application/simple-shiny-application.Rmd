@@ -1,7 +1,7 @@
-```{R self_running, eval=FALSE, include = FALSE}
-knitr::purl("./simple-shiny-application.Rmd")
-source("./simple-shiny-application.R")
-```
+<!-- ```{R self_running, eval=FALSE, include = FALSE} -->
+<!-- knitr::purl("./simple-shiny-application.Rmd") -->
+<!-- source("./simple-shiny-application.R") -->
+<!-- ``` -->
 ```{R testing_param, echo = F, eval = T, include=FALSE}
 input <- new.env()
 input$koi_score <- c(0.1,0.3340)
@@ -28,12 +28,12 @@ ui <- fluidPage(
         sidebarPanel(
             helpText("This application will subset the keppler dataset to data of interest."),
             h3(helpText("Select:")),
-            sliderInput("koi_score", label = h4("score"), min = 0.000, max = 1.000, value = c(0.1,0.3340)),
-            sliderInput("koi_time0bk", label = h4("Distance to Planet (parsecs)"), min=120.5, max = 1472.5, value = c(50,137.2)),
-            sliderInput("koi_prad", label = h4("Planet radius (R_E)"), min = 1.08, max = 5.200346, value = c(1,2.39)),
+            sliderInput("koi_score", label = h4("KOI score (result of an algorithim taking ALL inputs, and attempting to quantify planet preference)"), min = 0.000, max = 1.000, value = c(0.1,0.3340)),
+            sliderInput("koi_time0bk", label = h4("Distance to Planet (in parsecs)"), min=120.5, max = 1472.5, value = c(50,137.2)),
+            sliderInput("koi_prad", label = h4("Planet radius (symbol is R_E)"), min = 1.08, max = 5.200346, value = c(1,2.39)),
 
             # Button
-            downloadButton("downloadData", "Download")
+            downloadButton("downloadData", "Click here to download a filtered CSV of planets meeting the above")
         ),
 
                                         # Show a plot with mpg and regression line
@@ -75,7 +75,7 @@ server <- function(input, output) {
 #        data_kepler <- filter(kepler, kepler$koi_score %in% input$koi_score, kepler$koi_time0bk %in% input$koi_time0bk, kepler$koi_prad %in% input$koi_prad)
         # Drow the plot using ggplot2
         plot <- ggplot(data=data_kepler, aes(x=koi_time0bk, y = koi_prad))+
-            geom_point(aes(color = koi_score), alpha = 0.3) +
+            geom_point(aes(color = koi_score)) +
             xlab("Distance to Earth (Parsecs)") +
             ylab("Radius (relative to Earth)") +
             ggtitle("Viable planets")
