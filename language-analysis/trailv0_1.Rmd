@@ -23,9 +23,12 @@ This is a scrap space, things are often deleted/changed.
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
 ```
 
+https://rpubs.com/SNTag/633304
+
 # CURRENT PROBLEMS TO SOLVE
 
-- What is messing up generation of ngrams?!
+- have ngrams been produced properly?
+- why is string predictor NOT working right?
 
 # should use more of:
 
@@ -130,6 +133,8 @@ us.data <- c(us.blogs, us.twitter, us.news) %>% createCorpus
 
 ### generate n-grams
 
+#### tm
+
 ```{R}
 #text.corpus <- tm::tm_map(us.data, tm::PlainTextDocument)
 
@@ -158,14 +163,26 @@ inspect(dtm1)
 inspect(dtm2)
 inspect(dtm3)
 inspect(dtm4)
+
+
+bigram<-function(x) NGramTokenizer(x,Weka_control(min=2,max=2))
+bigramtab<-TermDocumentMatrix(us.data,control=list(tokenize=bigram))
+bigramcorpus<-findFreqTerms(bigramtab,lowfreq=80)
+bigramcorpusnum<-rowSums(as.matrix(bigramtab[bigramcorpus,]))
+bigramcorpustab<-data.frame(Word=names(bigramcorpusnum),frequency=bigramcorpusnum)
+bigramcorpussort<-bigramcorpustab[order(-bigramcorpustab$frequency),]
 ```
+
+#### TidyText
 
 ```{R}
 
 
 #' crass function to remove some remaining antagonizers
 forceClean  <- function(input) {
-    input[-(stri_detect(c(tmpVar$term), fixed = "\"") %>% which),]
+    input[-(stringi::stri_detect(c(input$term), fixed = "\"") %>% which),]
+    input[-(stringi::stri_detect(c(input$term), fixed = "(") %>% which),]
+    input[-(stringi::stri_detect(c(input$term), fixed = "ø") %>% which),]
 }
 
 pacman::p_load(tidytext, magrittr)
@@ -174,40 +191,49 @@ tmpVar <-
     us.data %>%
     TermDocumentMatrix() %>%
     tidy %>%
-    forceClean
+    forceClean %>%
+    dplyr::filter(!stringr::str_detect(term, "[^A-Za-z\\d]"))
 
 ### using tidytext
 data_frame1 <-
     tmpVar %>%
     unnest_tokens(output = bigram, input = term, token = "ngrams", n = 1) %>%
     dplyr::select(c(bigram, count)) %>%
-    dplyr::arrange(desc(count))##  %>%
+    dplyr::arrange(desc(count)) %>%
+    as.data.frame##  %>%
     ## na.omit
 names(data_frame1)  <- c("terms", "freq")
+data_frame1 <- data_frame1[-(data_frame1$terms %>% is.na %>% which),]
 
 data_frame2 <-
     tmpVar %>%
     unnest_tokens(bigram, term, token = "ngrams", n = 2) %>%
     dplyr::select(c(bigram, count)) %>%
-    dplyr::arrange(desc(count))##  %>%
+    dplyr::arrange(desc(count)) %>%
+    as.data.frame##  %>%
     ## na.omit
 names(data_frame2)  <- c("terms", "freq")
+data_frame2 <- data_frame2[-(data_frame2$terms %>% is.na %>% which),]
 
 data_frame3 <-
     tmpVar %>%
     unnest_tokens(bigram, term, token = "ngrams", n = 3) %>%
     dplyr::select(c(bigram, count)) %>%
-    dplyr::arrange(desc(count))##  %>%
+    dplyr::arrange(desc(count)) %>%
+    as.data.frame##  %>%
     ## na.omit
 names(data_frame3)  <- c("terms", "freq")
+data_frame3 <- data_frame3[-(data_frame3$terms %>% is.na %>% which),]
 
 data_frame4 <-
     tmpVar %>%
     unnest_tokens(bigram, term, token = "ngrams", n = 4) %>%
     dplyr::select(c(bigram, count)) %>%
-    dplyr::arrange(desc(count))##  %>%
+    dplyr::arrange(desc(count)) %>%
+    as.data.frame##  %>%
     ## na.omit
 names(data_frame4)  <- c("terms", "freq") #
+data_frame4 <- data_frame4[-(data_frame4$terms %>% is.na %>% which),]
 ```
 
 ```{R}
@@ -345,7 +371,7 @@ Get_next_word<- function(input_string) {
     }
 }
 
-Get_next_word("I AM SO")
+Get_next_word("The guy in front of me just bought a pound of bacon, a bouquet, and a case of")
 ```
 
 # Vocab
