@@ -1,7 +1,7 @@
 ---
 title: "Analysis on Exercise Data"
 author: "SNTag"
-date: "21 June, 2020"
+date: "17 July, 2020"
 output:
   html_document:
     number_sections: true
@@ -26,15 +26,15 @@ Goal: to identify the exercise regime identified in the classe variable.
 
 
 ```r
-library(tidyverse)
-library(magrittr)
-library(caret)
-library(doParallel)
+pacman::p_load(tidyverse,
+               magrittr,
+               caret,
+               doParallel)
 
-df_train <- read_csv("./data/pml-training.csv")
-df_test  <- read_csv("./data/pml-testing.csv")
+train <- read_csv("./data/pml-training.csv")
+test  <- read_csv("./data/pml-testing.csv")
 
-df_train$classe <- df_train$classe %>% as.factor
+train$classe <- train$classe %>% as.factor
 
 set.seed("1701")
 ```
@@ -50,10 +50,11 @@ only some data. None are entirely NAs though.
 
 
 ```r
-missing_values <- df_train %>% summarize_all(funs(sum(is.na(.))/dim(df_train)[1]))
-
-missing_values <- gather(missing_values, key="feature", value="missing_pct")
-missing_values %>%
+missing.values.count <- train %>%
+    dplyr::summarize_all(funs(sum(is.na(.))/dim(train)[1]))
+missing.values.count <-
+    gather(missing.values.count, key="feature", value="missing_pct")
+missing.values.count %>%
     ggplot(aes(x=reorder(feature,-missing_pct),y=missing_pct)) +
     geom_bar(stat="identity",fill="red")+
     coord_flip()+theme_bw()
@@ -66,22 +67,35 @@ too. I am unsure how to make the best use of this information so I will remove t
 
 
 ```r
-missing_values_logic <- sapply(df_test, function(x) any(is.na(x)))
-df_train_cc          <- df_train[,!missing_values_logic]
-df_train_cc$classe   <- df_train$classe %>% as.factor
+missing.values <- apply(train, 2, function(x) mean(is.na(x))) > 0.95
+train.cc          <- train[, -which(missing.values, missing.values == FALSE)]
+test.cc           <- test[, -which(missing.values, missing.values == FALSE)]
+```
+
+We also need to handle near zero variances (NZV). Additionally, the first 5 columns are of useless information.
+
+
+```r
+NZV      <- nearZeroVar(train.cc)
+train.cc <- train.cc[ ,-NZV]
+test.cc  <- test.cc[ ,-NZV]
+
+train.cc <- train.cc[ , -(1:5)]
+test.cc  <- test.cc[ , -(1:5)]
 ```
 
 And finally, to test my models capabilities, I will split the training data set 80-20. The model
 will be trained on the 80%, and tested on the 20%, before being applied to data in question
-(df_test).
+(test).
 
 
 ```r
-trainIndex <- caret::createDataPartition(df_train_cc$classe, p = .8,
-                                  list = FALSE,
-                                  times = 1)
-df_train_cc80 <- df_train_cc[trainIndex,]
-df_train_cc20 <- df_train_cc[-trainIndex,]
+trainIndex <- caret::createDataPartition(train.cc$classe,
+                                         p = .8,
+                                         list = FALSE,
+                                         times = 1)
+train.cc80 <- train.cc[trainIndex,]
+train.cc20 <- train.cc[-trainIndex,]
 ```
 
 
@@ -94,59 +108,59 @@ cross-validation will be completed between the two models. Both models will be r
 
 
 ```r
-if (exists("rf_fit")) {
-    rf_fit <- readRDS("fit.rds")
-} else {
-cl <- makePSOCKcluster(5)
+#if (exists("rf_fit")) {
+#    rf.fit <- readRDS("fit.rds")
+#} else {
+    cl <- makePSOCKcluster(5)
     registerDoParallel(cl)
 
     fitControl <- caret::trainControl(method = "cv",
                                       number = 10)
-    rf_fit <- caret::train(classe~.,
-                           data=df_train_cc80,
+    rf.fit <- caret::train(classe~.,
+                           data=train.cc80,
                            method="rf",
                            metric="Kappa",
                            trControl=fitControl)
 
     stopCluster(cl)
-    saveRDS(rf_fit, file = "fit.rds")
-}
+#    saveRDS(rf.fit, file = "fit.rds")
+#}
 ```
 
 ```r
-if (!exists("gbm_fit")) {
-    rf_fit <- readRDS("fit.rds")
-} else {
+#if (!exists("gbm.fit")) {
+#    gbm.fit <- readRDS("gbm.rds")
+#} else {
 cl <- makePSOCKcluster(5)
     registerDoParallel(cl)
 
 fitControl <- caret::trainControl(method = "cv",
                                       number = 10)
 
-gbm_fit <- train(classe ~ .,
-                 data = df_train_cc80,
+gbm.fit <- train(classe ~ .,
+                 data = train.cc80,
                  method = "gbm",
                  metric = "Kappa",
                  trControl = fitControl,
                  verbose = FALSE)
 
     stopCluster(cl)
-    saveRDS(rf_fit, file = "gbm.rds")
-}
+#    saveRDS(rf.fit, file = "gbm.rds")
+#}
 ```
 
 looking at the resulting models, we get:
 
 
 ```r
-rf_fit
+rf.fit
 ```
 
 ```
 ## Random Forest 
 ## 
 ## 15699 samples
-##    59 predictor
+##    53 predictor
 ##     5 classes: 'A', 'B', 'C', 'D', 'E' 
 ## 
 ## No pre-processing
@@ -155,37 +169,39 @@ rf_fit
 ## Resampling results across tuning parameters:
 ## 
 ##   mtry  Accuracy   Kappa    
-##    2    0.9966876  0.9958102
-##   41    0.9999363  0.9999194
-##   81    0.9998726  0.9998389
+##    2    0.9958594  0.9947624
+##   27    0.9979616  0.9974217
+##   53    0.9962414  0.9952456
 ## 
 ## Kappa was used to select the optimal model using the largest value.
-## The final value used for the model was mtry = 41.
+## The final value used for the model was mtry = 27.
 ```
 
 ```r
-gbm_fit
-```
+#gbm.fit
 
-```
-## Error in eval(expr, envir, enclos): object 'gbm_fit' not found
-```
-
-```r
 library(lattice)
-resample_result <- resamples(list(rf = rf_fit, gbm = gbm_fit))
+resample.result <- caret::resamples(list(rf = rf.fit, gbm = gbm.fit))
+summary(resample.result)
 ```
 
 ```
-## Error in resamples(list(rf = rf_fit, gbm = gbm_fit)): object 'gbm_fit' not found
-```
-
-```r
-summary(resample_result)
-```
-
-```
-## Error in summary(resample_result): object 'resample_result' not found
+## 
+## Call:
+## summary.resamples(object = resample.result)
+## 
+## Models: rf, gbm 
+## Number of resamples: 10 
+## 
+## Accuracy 
+##          Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+## rf  0.9961759 0.9974510 0.9980900 0.9979616 0.9987269 0.9993631    0
+## gbm 0.9840866 0.9859806 0.9875711 0.9877064 0.9890127 0.9929936    0
+## 
+## Kappa 
+##          Min.   1st Qu.    Median      Mean   3rd Qu.      Max. NA's
+## rf  0.9951632 0.9967759 0.9975839 0.9974217 0.9983900 0.9991943    0
+## gbm 0.9798680 0.9822655 0.9842752 0.9844480 0.9861021 0.9911374    0
 ```
 
 Interestingly, both models have a relatively high accuracy. This assignment will continue using the
@@ -195,8 +211,8 @@ specificity when applied to the split data. Finally, error can be found using 'c
 
 ```r
 results <- c()
-results$predicted <- predict(rf_fit,newdata = df_train_cc20)
-results$classe <- df_train_cc20$classe
+results$predicted <- predict(rf.fit,newdata = train.cc20)
+results$classe <- train.cc20$classe
 results <- as.data.frame(results)
 print("number of incorrectly predicted rows:")
 ```
@@ -210,11 +226,11 @@ length(which(results$predicted != results$classe))
 ```
 
 ```
-## [1] 1
+## [1] 6
 ```
 
 ```r
-confusionMatrix(df_train_cc20$classe, predict(rf_fit, newdata = df_train_cc20))
+caret::confusionMatrix(train.cc20$classe, predict(rf.fit, newdata = train.cc20))
 ```
 
 ```
@@ -223,33 +239,33 @@ confusionMatrix(df_train_cc20$classe, predict(rf_fit, newdata = df_train_cc20))
 ##           Reference
 ## Prediction    A    B    C    D    E
 ##          A 1116    0    0    0    0
-##          B    1  758    0    0    0
-##          C    0    0  684    0    0
-##          D    0    0    0  643    0
+##          B    2  756    1    0    0
+##          C    0    2  682    0    0
+##          D    0    0    1  642    0
 ##          E    0    0    0    0  721
 ## 
 ## Overall Statistics
-##                                      
-##                Accuracy : 0.9997     
-##                  95% CI : (0.9986, 1)
-##     No Information Rate : 0.2847     
-##     P-Value [Acc > NIR] : < 2.2e-16  
-##                                      
-##                   Kappa : 0.9997     
-##                                      
-##  Mcnemar's Test P-Value : NA         
+##                                           
+##                Accuracy : 0.9985          
+##                  95% CI : (0.9967, 0.9994)
+##     No Information Rate : 0.285           
+##     P-Value [Acc > NIR] : < 2.2e-16       
+##                                           
+##                   Kappa : 0.9981          
+##                                           
+##  Mcnemar's Test P-Value : NA              
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: A Class: B Class: C Class: D Class: E
-## Sensitivity            0.9991   1.0000   1.0000   1.0000   1.0000
-## Specificity            1.0000   0.9997   1.0000   1.0000   1.0000
-## Pos Pred Value         1.0000   0.9987   1.0000   1.0000   1.0000
-## Neg Pred Value         0.9996   1.0000   1.0000   1.0000   1.0000
-## Prevalence             0.2847   0.1932   0.1744   0.1639   0.1838
-## Detection Rate         0.2845   0.1932   0.1744   0.1639   0.1838
+## Sensitivity            0.9982   0.9974   0.9971   1.0000   1.0000
+## Specificity            1.0000   0.9991   0.9994   0.9997   1.0000
+## Pos Pred Value         1.0000   0.9960   0.9971   0.9984   1.0000
+## Neg Pred Value         0.9993   0.9994   0.9994   1.0000   1.0000
+## Prevalence             0.2850   0.1932   0.1744   0.1637   0.1838
+## Detection Rate         0.2845   0.1927   0.1738   0.1637   0.1838
 ## Detection Prevalence   0.2845   0.1935   0.1744   0.1639   0.1838
-## Balanced Accuracy      0.9996   0.9998   1.0000   1.0000   1.0000
+## Balanced Accuracy      0.9991   0.9982   0.9982   0.9998   1.0000
 ```
 
 
@@ -257,14 +273,13 @@ confusionMatrix(df_train_cc20$classe, predict(rf_fit, newdata = df_train_cc20))
 
 
 ```r
-finalResults <- predict(rf_fit, newdata = df_test)
+finalResults <- predict(rf.fit, newdata = test)
 print(finalResults)
 ```
 
 ```
-##  [1] A A A A A A A A A A A A A A A A A A A A
+##  [1] B A B A A E D B A A B C B A E E A B B B
 ## Levels: A B C D E
 ```
 
-The results suggest it is all A. As the significance from the earlier steps is high, it will
-be accepted.
+As the significance from the earlier steps is high, this is the solution.

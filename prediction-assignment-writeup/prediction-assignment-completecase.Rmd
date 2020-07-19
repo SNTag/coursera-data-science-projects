@@ -51,11 +51,6 @@ In a quick test to check distribution of NAs, 2/3rds of the columns are nearly e
 only some data. None are entirely NAs though.
 
 ```{R checking_for_NAs, echo = T, eval = T, fig.align = "center", fig.cap = "Percentage of rows per column that are NA."}
-missing.values <- apply(train, 2, function(x) mean(is.na(x))) > 0.95
-train          <- train[, -which(missing.values, label == FALSE)]
-test           <- test[, -which(missing.values, label == FALSE)]
-
-
 missing.values.count <- train %>%
     dplyr::summarize_all(funs(sum(is.na(.))/dim(train)[1]))
 missing.values.count <-
@@ -66,27 +61,25 @@ missing.values.count %>%
     coord_flip()+theme_bw()
 ```
 
-We also need to handle near zero variances (NZV). Additionally, the first 5 columns are of useless information.
-
-```{R handling_near_zero_var}
-dim(train)
-NZV   <- nearZeroVar(train)
-train <- train[ ,-NZV]
-test  <- test[ ,-NZV]
-
-train <- train[ , -(1:5)]
-test <- test[ , -(1:5)]
-```
-
 Further examination of the data shows that the same rows have NAs (Fig. 1). If one row has NAs, others will
 too. I am unsure how to make the best use of this information so I will remove these NAs.
 
-```{R removing_NAs, echo = T, eval = T}
-missing.values.logic <- sapply(test, function(x) any(is.na(x)))
-train.cc         <- train[,!missing.values.logic]
-train.cc$classe   <- train$classe %>% as.factor
+```{R removing_NAs, echo = T, eval = T, fig.align = "center", fig.cap = "Percentage of rows per column that are NA."}
+missing.values <- apply(train, 2, function(x) mean(is.na(x))) > 0.95
+train.cc          <- train[, -which(missing.values, missing.values == FALSE)]
+test.cc           <- test[, -which(missing.values, missing.values == FALSE)]
 ```
 
+We also need to handle near zero variances (NZV). Additionally, the first 5 columns are of useless information.
+
+```{R handling_near_zero_var}
+NZV      <- nearZeroVar(train.cc)
+train.cc <- train.cc[ ,-NZV]
+test.cc  <- test.cc[ ,-NZV]
+
+train.cc <- train.cc[ , -(1:5)]
+test.cc  <- test.cc[ , -(1:5)]
+```
 
 And finally, to test my models capabilities, I will split the training data set 80-20. The model
 will be trained on the 80%, and tested on the 20%, before being applied to data in question

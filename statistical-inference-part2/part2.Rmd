@@ -1,0 +1,235 @@
+---
+title: "Part 2: Analysis of ToothGrowth dataset"
+author: "Shayonendra Nath Tagore"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document:
+    number_sections: true
+    toc: false
+#    toc_depth: 3
+    fig_caption: yes
+    includes:
+      in_header: my_header.tex
+    fig_width: 4.66
+    fig_height: 3
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{siunitx}
+---
+
+<!-- checklist: -->
+<!-- https://github.com/lgreski/datasciencectacontent/blob/master/markdown/ToothGrowthChecklist.md -->
+
+
+# Introduction
+
+The Tooth Growth dataset records the effects of vitamin C on Guinea Pig tooth growth. The Vitamin C
+is delivered through either Orange Juice (OJ) or Vitamin C (VC). The dataset states the final tooth
+length (len), delivery method/supplement used (supp), and dosage (dose).
+
+```{R loading_packages, echo = F, eval = T, warning = F, message = F}
+### loading relevant packages and datasets
+pacman::p_load(datasets,  # holds the ToothGrowth dataset
+               magrittr,  # piping
+               ggthemr,   # theming
+               knitr,     # table formating
+               dplyr      # data handling
+               )
+ggthemr::ggthemr("flat")  # theming
+data(ToothGrowth)         # loads the ToothGrowth dataset
+
+### surface-level analysis of the dataset
+```
+
+# Basic Exploration
+
+The code below gives a surface-level analysis of the dataset:
+```{R loading_dataset, echo = T, eval = T, warning = F, message = F}
+## Returns surface-level analysis
+dim(ToothGrowth)
+str(ToothGrowth)
+summary(ToothGrowth)
+
+```
+
+Dose needs further analysis:
+```{R len_dose, echo = F, eval = T}
+## Further investigation of ToothGrowth$dose
+ToothGrowth$dose %>% unique
+
+```
+
+We can see that:
+
+* len (length)		 - Numeric, over a range of values.
+* supp (supplement)  - Factor. This is the supplement given; either OJ (Orange Juice) or VC (Vitamin C)
+* dose (dosage)		 - Numeric. Covers 3 distinct dosages: 0.5, 1.0, or 2.0.
+
+Dose handled as numeric will cause problems downstream. To improve statistical handling, this column will be converted to a factor.
+
+```{R dose_to_factor, echo = F, eval = T}
+## converting ToothGrowth$dose to a factor
+ToothGrowth$dose <- factor(ToothGrowth$dose)
+str(ToothGrowth)
+
+```
+
+
+# Basic Summary
+
+I will look at the length at each dose, separated by supplement.
+
+```{R scatter_plot, echo = F, eval = T, fig.align="center", fig.cap="Violin plot of tooth growth at each dose, separated by supplement."}
+### Basic Summary
+## Generate scatter plot (figure 1)
+ggplot(ToothGrowth, aes(x = dose, y = len, fill = supp)) +
+    geom_violin(position=position_dodge(0.7)) +
+    scale_x_discrete("Dosage in mg") +
+    scale_y_continuous("Length of Teeth") +
+    ggtitle("Dose by Tooth Length for each Supplement")
+
+```
+
+Between OJ and VC at each dose, OJ appears to led to result in greater lengths except at
+dose 2. Further, OJ at dose 0.5mg appears as competitive as VC at 1mg. These observations would be
+better confirmed through statistical analysis.
+
+# Confidence Interval and Hypothesis Testing
+
+The length of the tooth growth may be influenced by Vitamin C's delivery method. To explore this,
+the differences in the mean will be explored using the two-tailed T-test.
+
+**Hypothesis (\(H_{a}\))** :
+Different delivery methods results in a difference in the mean lengths.
+
+**Null Hypothesis (\(H_{0}\))** :
+There is no difference in the means of lengths due to delivery method.
+
+Dosage is another influencing factor in this study. To isolate it, the T-test will look at length
+due to delivery method for each distinct dose.
+
+```{R t.tests, echo = F, eval = T}
+## Code to complete T-tests on tooth length and delivery method, at varying doses.
+## Returns a formatted table.
+save2table <- function(tmpVar,i,k,var1,var2) {
+    tmpDF <- data.frame(variations=character(),
+                        var1=character(),
+                        var1.doses=numeric(),
+                        var2=character(),
+                        var2.doses=numeric(),
+                        p.value=numeric(),
+                        conf.int.lower=numeric(),
+                        conf.int.upper=numeric(),
+                        stringsAsFactors=FALSE)
+    tmpDF[1,1] <- paste(var1,doses[i],"~",var2,doses[k], sep = "")
+    tmpDF[1,2] <- var1
+    tmpDF[1,3] <- doses[i]
+    tmpDF[1,4] <- var2
+    tmpDF[1,5] <- doses[k]
+    tmpDF[1,6] <- tmpVar$p.value
+    tmpDF[1,7] <- tmpVar$conf.int[1]
+    tmpDF[1,8] <- tmpVar$conf.int[2]
+    return(tmpDF)
+}
+
+OJ  <- ToothGrowth[ToothGrowth$supp=="OJ", ]
+VC  <- ToothGrowth[ToothGrowth$supp=="VC", ]
+
+doses       <- c(0.5,1,2)
+
+hypotesting <- data.frame(variations=character(),
+                          var1=character(),
+                          var1.doses=numeric(),
+                          var2=character(),
+                          var2.doses=numeric(),
+                          p.value=numeric(),
+                          conf.int.lower=numeric(),
+                          conf.int.upper=numeric(),
+                          stringsAsFactors=FALSE)
+
+# Handles all variations of possible t.tests in a non-optimized manner.
+for (i in 1:length(doses)) {
+    for (k in 1:length(doses)) {
+        hypotesting <-
+            t.test(OJ$len[OJ$dose == doses[i]],
+                   VC$len[VC$dose == doses[k]]) %>%
+            save2table(i,k,"OJ","VC") %>%
+            dplyr::bind_rows(hypotesting)
+        hypotesting <-
+            t.test(OJ$len[OJ$dose == doses[i]],
+                   OJ$len[OJ$dose == doses[k]]) %>%
+            save2table(i,k,"OJ","OJ") %>%
+            dplyr::bind_rows(hypotesting)
+        hypotesting <-
+            t.test(VC$len[VC$dose == doses[i]],
+                   VC$len[VC$dose == doses[k]]) %>%
+            save2table(i,k,"VC","VC") %>%
+            dplyr::bind_rows(hypotesting)
+    }
+}
+hypotesting <- hypotesting[order(hypotesting$variations),]
+
+# Removing variations where it's testing against itself. redundent.
+for (i in 1:length(hypotesting$p.value)) {
+    ifelse((hypotesting$p.value[i] == 1.000000e+00),
+           hypotesting <- hypotesting[-i, ],
+           NA)
+}
+rownames(hypotesting) <- 1:nrow(hypotesting)
+
+```
+
+```{R t.test_tables, echo = F, eval = T}
+## Making a table to display the discovered T-test relationships.
+hypotesting %>%
+    select(variations,
+           p.value,
+           conf.int.lower,
+           conf.int.upper) %>%
+    kable(format = "latex",
+          booktabs = TRUE,
+          caption = "t.tests for length and delivery method at varying doses",
+          row.names = NA)
+
+```
+```{R checking_p.values, echo = F, eval = T}
+## checking for T-tests yielding non-significant relationships.
+count_nonsig <- data.frame(variations=character(),
+                           var1=character(),
+                           var1.doses=numeric(),
+                           var2=character(),
+                           var2.doses=numeric(),
+                           p.value=numeric(),
+                           conf.int.lower=numeric(),
+                           conf.int.upper=numeric(),
+                           stringsAsFactors=FALSE)
+for (i in 1:length(hypotesting$p.value)) {
+    ifelse((hypotesting$p.value[i] > 0.05),
+           count_nonsig <- dplyr::bind_rows(count_nonsig, hypotesting[i, ]),
+           NA)
+}
+
+```
+
+With \(\alpha\) = 0.05, only two of the tests are non-significant (P-value > \(\alpha\)): OJ1~VC2 and OJ2~VC2.
+
+# Conclusion
+
+The following assumptions have been made:
+
+* The observed variables are representative of the population.
+* The variables follow a normal distribution.
+* The samples are independent.
+* Guinea Pigs were randomly assigned a supplement and dosage.
+
+From the analysis above, it is clear that OJ has a greater effect on tooth growth except at dose
+2mg, at which point VC and OJ are equivalent. From Figure 1 and Table 1, increasing the dosage for
+OJ led to improved tooth growth. The only two tests that were non-significant show that OJ at 1mg or
+2mg is equivalent with VC at 2mg.
+
+\(\pagebreak\)
+
+# Appendix
+
+```{r ref.label=knitr::all_labels(), echo=TRUE, eval=FALSE}
+```

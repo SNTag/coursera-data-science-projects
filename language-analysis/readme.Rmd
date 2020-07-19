@@ -1,0 +1,21 @@
+---
+title: "language analysis"
+author: "SNTag"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    css: style.css
+    number_sections: false
+    toc: false
+    toc_depth: 3
+    fig_caption: true
+    fig_width: 7
+    fig_height: 4
+    includes:
+      in_header: my_header.tex
+---
+
+# about
+This is a project where machine-learning will predict how a sentence should end.
+
+ex., "me and John went to the _ _ _ _"
