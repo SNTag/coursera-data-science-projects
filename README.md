@@ -10,7 +10,7 @@ Trial work using leaflet.
 A quick & short intro to the Gapminder data.
 
 - [shiny application](https://sntag.shinyapps.io/simple-shiny-application/)
-A shiny application exploring the Kepler dataset. Only meant as a quick interface to search for possible planets in given parameters.
+A shiny application exploring the Kepler dataset. Only meant as a quick interface for possibly habitable planets in given parameters.
 
 - [Machine-learning: What exercises](https://sntag.github.io/coursera-data-science-projects/prediction-assignment-writeup/prediction-assignment-completecase.html)
 This project will attempt to identify exercise regimes followed from several patients biological data.
