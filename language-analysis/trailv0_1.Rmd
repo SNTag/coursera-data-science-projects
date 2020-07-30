@@ -43,10 +43,16 @@ gc(): this function runs the garbage collector to retrieve unused RAM for R. In 
 
 
 # experiments
-## handling data
+## handling daat
 ### cleaning data
 files were downloaded from [here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip)
-swear words from [here](https://github.com/RobertJGabriel/Google-profanity-words)
+swear words from [here](https://github.com/RobertJGabriel/Google-profanity-words) (already will be read in below)
+
+```{bash}
+wget --show-progress --directory-prefix="~/Documents/coursera-data-science-projects/language-analysis/data/" "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+unzip ~/Documents/coursera-data-science-projects/language-analysis/data/Coursera-SwiftKey.zip
+```
+
 
 ```{R}
 pacman::p_load(magrittr,
@@ -102,8 +108,8 @@ cleanCorpus <- function (inputCorpus) {
 
 
 ### read in files + cleaning + conversion to documentMatrix
-n          <- 1001
-profanity  <- readFile("./data/Google-profanity-words/list.txt")
+n          <- 10000
+profanity  <- readFile("https://raw.githubusercontent.com/RobertJGabriel/Google-profanity-words/master/list.txt")
 us.blogs   <-
     readFile("./data/final/en_US/en_US.blogs.txt", n) %>%
     as_tibble %>%
@@ -241,6 +247,14 @@ word <- '103'
 part_ngrams <- dtm$dimnames$Terms[grep(word, dtm$dimnames$Terms)]
 part_ngrams
 ```
+
+```{R}
+saveRDS(data_frame1, file = "./data_frame1.rds")
+saveRDS(data_frame2, file = "./data_frame2.rds")
+saveRDS(data_frame3, file = "./data_frame3.rds")
+saveRDS(data_frame4, file = "./data_frame4.rds")
+```
+
 
 
 ## some files to play with
