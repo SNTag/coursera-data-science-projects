@@ -44,9 +44,10 @@ gc(): this function runs the garbage collector to retrieve unused RAM for R. In 
 
 # experiments
 ## handling daat
-### cleaning data
+### Generating corpus
 files were downloaded from [here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip)
 swear words from [here](https://github.com/RobertJGabriel/Google-profanity-words) (already will be read in below)
+
 
 ```{bash}
 wget --show-progress --directory-prefix="~/Documents/coursera-data-science-projects/language-analysis/data/" "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
@@ -93,11 +94,12 @@ createCorpus <- function(fulltext) {
         tm::Corpus(vs, readerControl=list(tm::readPlain, language="en", load=TRUE))
 }
 
+#' DISCARDED. using tm_map for cleaning has proven to be slower than using tidytext.
 #' cleans corpus by removing all remaining extras (puncutations, capitilizations, profanity, stopwords)
-cleanCorpus <- function (inputCorpus) {
-  inputCorpus <- tm_map(inputCorpus, content_transformer(tolower)) # upper to lower
-  inputCorpus <- tm_map(inputCorpus, content_transformer(removePunctuation)) # rm punct. as seen by tm
-  inputCorpus <- tm_map(inputCorpus, content_transformer(removeNumbers)) # rm numbers
+cleanCorpus <- function (inputCorpus) { inputCorpus <- tm_map(inputCorpus,
+  content_transformer(tolower)) # upper to lower inputCorpus <- tm_map(inputCorpus,
+  content_transformer(removePunctuation)) # rm punct. as seen by tm inputCorpus <-
+  tm_map(inputCorpus, content_transformer(removeNumbers)) # rm numbers
 
   # remove profanity and stopwords
   inputCorpus <- tm_map(inputCorpus, removeWords, c(stopwords("english"), profanity))
@@ -108,154 +110,113 @@ cleanCorpus <- function (inputCorpus) {
 
 
 ### read in files + cleaning + conversion to documentMatrix
-n          <- 10000
+n          <- 0
 profanity  <- readFile("https://raw.githubusercontent.com/RobertJGabriel/Google-profanity-words/master/list.txt")
 us.blogs   <-
     readFile("./data/final/en_US/en_US.blogs.txt", n) %>%
     as_tibble %>%
-    removeTwitter %>%
-    createCorpus %>%
-    cleanCorpus
+    removeTwitter
+#    createCorpus %>%
+#    cleanCorpus
 #    tm::DocumentTermMatrix()
 us.twitter <-
     readFile("./data/final/en_US/en_US.twitter.txt", n) %>%
     as_tibble %>%
-    removeTwitter %>%
-    createCorpus %>%
-    cleanCorpus
+    removeTwitter
+#    createCorpus %>%
+#    cleanCorpus
 #    tm::DocumentTermMatrix()
 us.news    <-
     readFile("./data/final/en_US/en_US.news.txt", n) %>%
     as_tibble %>%
-    removeTwitter %>%
-    createCorpus %>%
-    cleanCorpus
+    removeTwitter
+#    createCorpus %>%
+#    cleanCorpus
 #    tm::DocumentTermMatrix() %>%
+```
 
+#### Generating main corpus
 
+```{R}
 ### create one single massive corpus
-us.data <- c(us.blogs, us.twitter, us.news) %>% createCorpus
+if (exists("./us_data.rds")) {
+    readRDS("./us_data.rds")
+} else {
+    gc()
+    print("1")
+    us.data <- c(us.blogs, us.twitter, us.news) %>%
+        createCorpus %>%
+        TermDocumentMatrix
+    gc()
+    print("2")
+    us.data <- us.data %>%
+        tidy
+    gc()
+    print("3")
+    us.data <- us.data %>%
+        unnest_tokens(word, term)
+    gc()
+    print("4")
+    us.data <- us.data %>%
+        anti_join(stop_words)
+    gc()
+    print("5")
+    us.data <- us.data %>%
+        dplyr::filter(!stringr::str_detect(word, "[^A-Za-z\\d]"))
+    saveRDS(us.data, file = "./us_data.rds")
+}
 ```
 
 ### generate n-grams
 
-#### tm
-
 ```{R}
-#text.corpus <- tm::tm_map(us.data, tm::PlainTextDocument)
-
-pacman::p_load(RWeka)
-
-
-### using RWeka
-length <- 2 # how many words on either side of word of interest
-length1 <- 1 + length * 2
-ngramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = length, max = length1 ))
-
-monogramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 1, max = 1 ))
-bigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2 ))
-trigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 3, max = 3 ))
-quadgramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 4, max = 4 ))
-
-text.corpus <- tm::tm_map(us.data, tm::PlainTextDocument)
-dtm <- TermDocumentMatrix(us.data, control = list(tokenize = ngramTokenizer))
-
-dtm1 <- TermDocumentMatrix(us.data, control = list(tokenize = monogramTokenizer))
-dtm2 <- TermDocumentMatrix(us.data, control = list(tokenize = bigramTokenizer))
-dtm3 <- TermDocumentMatrix(us.data, control = list(tokenize = trigramTokenizer))
-dtm4 <- TermDocumentMatrix(us.data, control = list(tokenize = quadgramTokenizer))
-
-inspect(dtm1)
-inspect(dtm2)
-inspect(dtm3)
-inspect(dtm4)
-
-
-bigram<-function(x) NGramTokenizer(x,Weka_control(min=2,max=2))
-bigramtab<-TermDocumentMatrix(us.data,control=list(tokenize=bigram))
-bigramcorpus<-findFreqTerms(bigramtab,lowfreq=80)
-bigramcorpusnum<-rowSums(as.matrix(bigramtab[bigramcorpus,]))
-bigramcorpustab<-data.frame(Word=names(bigramcorpusnum),frequency=bigramcorpusnum)
-bigramcorpussort<-bigramcorpustab[order(-bigramcorpustab$frequency),]
-```
-
-#### TidyText
-
-```{R}
-
-
+#' DISCARDED. Use of tidy text is making this unnecessary.
 #' crass function to remove some remaining antagonizers
 forceClean  <- function(input) {
-    input[-(stringi::stri_detect(c(input$term), fixed = "\"") %>% which),]
-    input[-(stringi::stri_detect(c(input$term), fixed = "(") %>% which),]
-    input[-(stringi::stri_detect(c(input$term), fixed = "ø") %>% which),]
+    input[-(stringi::stri_detect(c(input$word), fixed = "\"") %>% which),]
+    input[-(stringi::stri_detect(c(input$word), fixed = "(") %>% which),]
+    input[-(stringi::stri_detect(c(input$word), fixed = "ø") %>% which),]
 }
 
 pacman::p_load(tidytext, magrittr)
 
-tmpVar <-
-    us.data %>%
-    TermDocumentMatrix() %>%
-    tidy %>%
-    forceClean %>%
-    dplyr::filter(!stringr::str_detect(term, "[^A-Za-z\\d]"))
-
 ### using tidytext
 data_frame1 <-
-    tmpVar %>%
-    unnest_tokens(output = bigram, input = term, token = "ngrams", n = 1) %>%
+    us.data %>%
+    unnest_tokens(output = bigram, input = word, token = "ngrams", n = 1) %>%
     dplyr::select(c(bigram, count)) %>%
     dplyr::arrange(desc(count)) %>%
-    as.data.frame##  %>%
-    ## na.omit
+    as.data.frame
 names(data_frame1)  <- c("terms", "freq")
-data_frame1 <- data_frame1[-(data_frame1$terms %>% is.na %>% which),]
+#data_frame1 <- data_frame1[-(data_frame1$terms %>% is.na %>% which),]
 
 data_frame2 <-
-    tmpVar %>%
-    unnest_tokens(bigram, term, token = "ngrams", n = 2) %>%
+    us.data %>%
+    unnest_tokens(bigram, word, token = "ngrams", n = 2) %>%
     dplyr::select(c(bigram, count)) %>%
     dplyr::arrange(desc(count)) %>%
-    as.data.frame##  %>%
-    ## na.omit
+    as.data.frame
 names(data_frame2)  <- c("terms", "freq")
 data_frame2 <- data_frame2[-(data_frame2$terms %>% is.na %>% which),]
 
 data_frame3 <-
-    tmpVar %>%
-    unnest_tokens(bigram, term, token = "ngrams", n = 3) %>%
+    us.data %>%
+    unnest_tokens(bigram, word, token = "ngrams", n = 3) %>%
     dplyr::select(c(bigram, count)) %>%
     dplyr::arrange(desc(count)) %>%
-    as.data.frame##  %>%
-    ## na.omit
+    as.data.frame
 names(data_frame3)  <- c("terms", "freq")
 data_frame3 <- data_frame3[-(data_frame3$terms %>% is.na %>% which),]
 
 data_frame4 <-
-    tmpVar %>%
-    unnest_tokens(bigram, term, token = "ngrams", n = 4) %>%
+    us.data %>%
+    unnest_tokens(bigram, word, token = "ngrams", n = 4) %>%
     dplyr::select(c(bigram, count)) %>%
     dplyr::arrange(desc(count)) %>%
-    as.data.frame##  %>%
-    ## na.omit
+    as.data.frame
 names(data_frame4)  <- c("terms", "freq") #
 data_frame4 <- data_frame4[-(data_frame4$terms %>% is.na %>% which),]
 ```
-
-```{R}
-word <- '103'
-part_ngrams <- dtm$dimnames$Terms[grep(word, dtm$dimnames$Terms)]
-part_ngrams
-```
-
-```{R}
-saveRDS(data_frame1, file = "./data_frame1.rds")
-saveRDS(data_frame2, file = "./data_frame2.rds")
-saveRDS(data_frame3, file = "./data_frame3.rds")
-saveRDS(data_frame4, file = "./data_frame4.rds")
-```
-
-
 
 ## some files to play with
 
@@ -386,6 +347,15 @@ Get_next_word<- function(input_string) {
 }
 
 Get_next_word("The guy in front of me just bought a pound of bacon, a bouquet, and a case of")
+Get_next_word("You're the reason why I smile everyday. Can you follow me please? It would mean the")
+Get_next_word("Hey sunshine, can you follow me and make me the")
+Get_next_word("Very early observations on the Bills game: Offense still struggling but the")
+Get_next_word("Go on a romantic date at the")
+Get_next_word("Well I'm pretty sure my granny has some old bagpipes in her garage I'll dust them off and be on my")
+Get_next_word("Ohhhhh #PointBreak is on tomorrow. Love that film and haven't seen it in quite some")
+Get_next_word("After the ice bucket challenge Louis will push his long wet hair out of his eyes with his little")
+Get_next_word("Be grateful for the good times and keep the faith during the")
+Get_next_word("If this isn't the cutest thing you've ever seen, then you must be")
 ```
 
 # Vocab
