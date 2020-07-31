@@ -16,6 +16,11 @@ output:
 ---
 
 # about
-This is a project where machine-learning will predict how a sentence should end.
+This is a work in progress.
+
+This is a project where natural language processing will predict how a sentence should end.
+
+This project takes data on twitter, blogs, and news in english and creates a corpus. N-grams are
+generated and predictive analysis done using a katz-backoff model with a Kneser-ney smoothing.
 
 ex., "me and John went to the _ _ _ _"
